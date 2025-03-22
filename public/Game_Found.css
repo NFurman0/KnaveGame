@@ -76,11 +76,11 @@ html, body {
     height: auto;
     display: block;
     position: absolute;
-    top: 75%;
+    top: 70%;
 }
 
 .playingCard:hover {
-    top: 70%;
+    top: 65%;
 }
 
 .playedCard {
