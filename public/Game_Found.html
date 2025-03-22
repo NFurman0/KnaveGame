@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Squid Game</title>
+        <link rel="stylesheet" href="Game_Found.css">
+    </head>
+    <body>
+
+        <div id="chatPaneContainer">
+            <div id="chatMessages">
+                <p class="chatMessage_Server">Searching for a game...</p>
+            </div>
+
+            <form onsubmit="sendMessage(); return false;" id="chatForm">
+                <input type="text" id="chatMessageText" placeholder="Send a message...">
+                <input type="submit" value="Send">
+            </form>
+
+        </div>
+        
+        <button id="startGameButton" onclick="readyStateChange()">Ready</button>
+        <p id="readyPlayersDisplay" for="startGameButton">Players Ready:<br>0/5</p>
+
+        <div>
+            <img class="playedCard" id="playerCard" src="card-images/card_back.png">
+            <p class="RoleDescription" id="knightDesc">
+                Knight:<br>Defeat the attackers by ensuring the sum of the played cards exceed the attack power, 
+                match the suit of the second attacker, and include a prime number.
+            </p>
+            <p class="RoleDescription" id="knaveDesc" style="display: none">
+                Knave:<br>Sabotage the knights (the knights win if the played cards have at least one suit matching 
+                the second attacker's, one prime number, and sum more than the attack power).
+            </p>
+        </div>
+        
+
+        <img class="playedCard" id="attackCard0" src="card-images/card_back.png">
+        <img class="playedCard" id="attackCard1" src="card-images/card_back.png">
+
+        <div id="playedCardsDisplay">
+            <img class="playedCard" id="playedCard_0" src="card-images/card_back.png">
+            <img class="playedCard" id="playedCard_1" src="card-images/card_back.png">
+            <img class="playedCard" id="playedCard_2" src="card-images/card_back.png">
+            <img class="playedCard" id="playedCard_3" src="card-images/card_back.png">
+        </div>
+
+        <div id="cardHandDisplay">
+            <img class="playingCard" id="cardInHand_0" src="card-images/card_back.png" onclick="chooseCardFromHand(0)">
+            <img class="playingCard" id="cardInHand_1" src="card-images/card_back.png" onclick="chooseCardFromHand(1)">
+            <img class="playingCard" id="cardInHand_2" src="card-images/card_back.png" onclick="chooseCardFromHand(2)">
+            <img class="playedCard" id="cardDeck" src="card-images/card_back.png">
+        </div>
+
+        <p id="attackPowerDisplay">
+            Attack Power: 0<br>
+            Needed Suit: Clubs
+        </p>
+
+    </body>
+    <footer>
+
+
+    </footer>
+
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <script src="Game_Found.js"></script>
+</html>
