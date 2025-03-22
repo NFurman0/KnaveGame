@@ -96,18 +96,18 @@ html, body {
 }
 
 #cardInHand_1 {
-    left: 36.667%;
+    left: 36%;
     transform: translate(-50%, 0);
 }
 
 #cardInHand_2 {
-    left: 53.333%;
+    left: 52%;
     transform: translate(-50%, 0);
 }
 
 #cardDeck {
     top: 70%;
-    left: 70%;
+    left: 68%;
     transform: translate(-50%, 0);
 }
 
@@ -135,21 +135,21 @@ html, body {
 
 #playedCard_1 {
     top: 50%;
-    left: 36.667%;
+    left: 36%;
     transform: translate(-50%, -50%);
     display: none;
 }
 
 #playedCard_2 {
     top: 50%;
-    left: 53.333%;
+    left: 52%;
     transform: translate(-50%, -50%);
     display: none;
 }
 
 #playedCard_3 {
     top: 50%;
-    left: 70%;
+    left: 68%;
     transform: translate(-50%, -50%);
     display: none;
 }
