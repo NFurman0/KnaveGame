@@ -9,6 +9,7 @@ const readyPlayersDisplay = document.getElementById("readyPlayersDisplay");
 const KNIGHT_DESC = document.getElementById("knightDesc");
 const KNAVE_DESC = document.getElementById("knaveDesc");
 const attackPowerDisplay = document.getElementById("attackPowerDisplay");
+const votingButtons = document.getElementById("votingButtons");
 
 const playerCard = document.getElementById("playerCard");
 const attackCard0 = document.getElementById("attackCard0");
@@ -17,6 +18,7 @@ const attackCard1 = document.getElementById("attackCard1");
 const numberCardsInHandDisplay = 3;
 const numberCardsInPlayDisplay = 4;
 var currentRound = 0;
+var numAssassinations = 0;
 
 const playedCards = [];
 for(var i = 0; i < numberCardsInPlayDisplay; i++) {
@@ -102,12 +104,16 @@ socket.on("RoundEnd", (didDefend, playedCards) => {
 
     currentRound += 1;
     if(didDefend) createChatMessage("server", "The Knights successfully defeated the attackers!", true);
-    else createChatMessage("server", "The Knights failed to defeat the attackers, a royal has been assassinated.", true);
+    else {
+        createChatMessage("server", "The Knights failed to defeat the attackers, a royal has been assassinated.", true);
+        numAssassinations += 1;
+    }
     
     const numKings = Math.max(4 - currentRound, 0);
     const numQueens = Math.min(8 - currentRound, 4);
     createChatMessage("server", "There are " + numKings + " kings still under attack.", true);
     createChatMessage("server", "There are " + numQueens + " queens still under attack.", true);
+    createChatMessage("server", numAssassinations + " royals have been assassinated.", true);
 });
 
 socket.on("TurnIsOccurring", (pNum) => {
@@ -125,6 +131,37 @@ socket.on("TakeTurn", (hand, cardsPlayed) => {
     for(const card of playedCards) {
         card.style.display = "block";
     }
+});
+
+socket.on("endGame", (numA) => {
+    if(numA < 3) {
+        createChatMessage("server", "The Knights have won the game.", true);
+        createChatMessage("server", "This room will close shortly.", true);
+    }
+    else if(numA > 3) {
+        createChatMessage("server", "The Knave has won the game.", true);
+        createChatMessage("server", "This room will close shortly.", true);
+    }
+    else {
+        createChatMessage("server", "Three royals were assassinated. For the knights to win the game, they must correctly vote out the knave.", true);
+        for(var i = 0; i < playedCards.length; i++) {
+            playedCards[i].style.display = "none";
+        }
+
+        for(var i = 0; i < playerNames.length; i++) {
+            const b = document.createElement("button");
+            b.innerHTML = playerNames[i];
+            b.setAttribute("onClick", "sendVote(" + i + ")");
+            votingButtons.appendChild(b);
+        }
+    }
+});
+
+socket.on("endVoting", (knaveSlot, knaveWins) => {
+    createChatMessage("server", "The Knave was " + playerNames[parseInt(knaveSlot)] + ".")
+    if(knaveWins) createChatMessage("server", "The Knave won by going undetected.", true);
+    else createChatMessage("server", "The Knights won by successfully voting out the Knave.", true);
+    createChatMessage("server", "This room will close shortly.", true);
 });
 
 socket.emit("CheckIn", UserName, UserRoom);
@@ -158,4 +195,8 @@ function readyStateChange() {
 function chooseCardFromHand(card) {
     socket.emit("PlayerCardChoice", card);
     cardsInHand[card].src = "card-images/card_back.png";
+}
+
+function sendVote(slot) {
+    socket.emit("Player_Vote", slot);
 }
