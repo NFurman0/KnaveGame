@@ -71,7 +71,7 @@ function addToRoom(id, room, updatePlayers) {
     const relevantSocket = io.sockets.sockets.get(id);
     relevantSocket.join(room);
 
-    const pNum = rooms[room]["numPlayers"]; //note: this goes from 0 to PlayersPerRoom - 1, not 1 to PlayersPerRoom
+    const pNum = rooms[room]["numPlayers"]; //note: pNum goes from 0 to PlayersPerRoom - 1, not 1 to PlayersPerRoom
     rooms[room]["numPlayers"] += 1;
 
     //First try to add them to an empty slot
@@ -135,6 +135,31 @@ function updateRoomPlayers(room) {
     checkReadyPlayers(room);
 }
 
+function closeRoom(room) {
+    console.log("attempting to close " + room);
+
+    const slots = rooms[room]["roomSlots"];
+    for(const slot in slots) {
+        if(slots[slot]["id"] === "_") continue;
+
+        const id = slots[slot]["id"];
+
+        if(players[id]["actualRoom"] == room) {
+            players[id]["actualRoom"] = "";
+            players[id]["requestedRoom"] = "";
+        }
+
+        const sock = io.sockets.sockets.get(id);
+        if(!sock) continue;
+
+        sock.leave(room);
+    }
+    delete roomRequests[rooms[room]["requestedRoomID"]]["successfulRooms"][room];
+    delete rooms[room];
+
+    console.log("successfully closed " + room);
+}
+
 function runTurn(room) {
     const numPlayers = 5; //again
     const currentTurn = rooms[room]["currentTurn"];
@@ -185,6 +210,7 @@ function endRound(room) {
     else {
         io.to(room).emit("RoundEnd", false, playedCards);
         rooms[room]["assassinations"] += 1;
+        if(rooms[room]["assassinations"] >= 4) endGame(room);
     }
 
     if(currentRound >= 4) { //4 rounds in a phase
@@ -229,8 +255,11 @@ function startGame(room) {
     for(var slot in roomSlots) {
         const pID = roomSlots[slot]["id"];
         const pSocket = io.sockets.sockets.get(pID);
-        roomSlots[slot]["role"] = roles.roles[parseInt(slot)];
-        pSocket.emit("GameStart", roles.roles[parseInt(slot)]);
+        const role = roles.roles[parseInt(slot)];
+
+        roomSlots[slot]["role"] = role;
+        pSocket.emit("GameStart", role);
+        if(role.suit.includes("Joker")) rooms[room]["knaveSlot"] = slot;
     }
     rooms[room]["phase"] = 0;
     rooms[room]["assassinations"] = 0;
@@ -240,20 +269,68 @@ function startGame(room) {
 
 function endGame(room) {
     console.log("ending game in room " + room);
+
+    var numA = rooms[room]["assassinations"];
+    io.to(room).emit("endGame", numA);
+    if(numA != 3) {
+        //either knights or knaves won outright, no need for voting
+        //rooms should close after 10 seconds
+        setTimeout(() => {
+            closeRoom(room);
+        }, 10000);
+    } 
+    else {
+        //voting will occur
+        rooms[room]["votes"] = [];
+        for(slot in rooms[room]["roomSlots"]) rooms[room]["roomSlots"][slot]["hasVoted"] = false;
+    }
 }
 
-//holds a socket id as a key, with a value object that holds player data like username
-//players[socket.id] has properties like username, requestedroom, etc.
+function countVote(room, vote) {
+    const voteArray = rooms[room]["votes"];
+    voteArray.push(vote); //votes should be a slot number
+
+    if(voteArray.length >= rooms[room]["numPlayers"]) {
+        const knaveSlot = rooms[room]["knaveSlot"];
+        const roomSlots = rooms[room]["roomSlots"];
+
+        for(vote of voteArray) {
+            if(roomSlots[vote]["voteTally"]) roomSlots[vote]["voteTally"] += 1;
+            else roomSlots[vote]["voteTally"] = 1;
+        }
+        const knaveVotes = roomSlots[knaveSlot]["voteTally"];
+
+        var knaveWins = true;
+        
+        for(slot in roomSlots) {
+            if(roomSlots[slot]["voteTally"] >= knaveVotes) {
+                knaveWins = false;
+                break;
+            }
+        }
+
+        io.to(room).emit("endVoting", knaveSlot, knaveWins);
+
+        setTimeout(() => {
+            closeRoom(room);
+        }, 10000);
+    }
+}
+
+//holds a socket id as a key, with a value object that holds player data
+//players[socket.id] has properties username, requestedRoom, actualRoom (if found), and roomSlot (if found).
 const players = {};
 
 //holds the players waiting to get into a given room. The user inputted room id is the key, so
 //roomRequests[UserRoom] is an object with socket ids as keys, and true as value (object used over array for easier insertion/deletion)
 const roomRequests = {};
 
-//holds all the currently active rooms, keys will be from currentRoom (0, 1, 2...), values will be objects holding numPlayers
-//and rooms[currentRoom]["players"] is an object with socket id's as keys and true as values.
-//rooms[room]["roomSlots"] holds info for each player (connected to a slot in the room so its safe if a player disconnects and rejoins)
-//note to self remember to write down a full schematic of each object
+//holds all the currently active rooms, keys will be from currentRoom (0, 1, 2...), values will be objects
+//Contains numPlayers, requestedRoomID, phase (integer), assassinations (integer), votes (array, only exists during vote tally),
+// currentRound (integer), attackDeck (array of Card Objects), currentTurn (integer), activePlayer (integer representing slot number),
+// playedCards (array of Card Objects), knaveSlot (integer), and roomSlots (object of objects specified below).
+//rooms[room]["roomSlots"][slotNumber] holds info for each player: ready_status (boolean), deck (array of Card objects),
+// role (card Object), and id (string).
 const rooms = {};
 //currentRoom ensures multiple rooms can have the same inputted room code.
 var currentRoom = 0;
@@ -272,9 +349,7 @@ io.on("connection", (socket) => {
             rooms[dcRoom]["numPlayers"] -= 1; //update the player count
 
             if(rooms[dcRoom]["numPlayers"] <= 0) {
-                //delete the room and stop roomRequests from listing it as a successful Room
-                delete roomRequests[rooms[dcRoom]["requestedRoomID"]]["successfulRooms"][dcRoom];
-                delete rooms[dcRoom];
+                closeRoom(dcRoom)
             }
             else {
                 updateRoomPlayers(dcRoom);//tell the remaining players the updated player list
@@ -379,7 +454,20 @@ io.on("connection", (socket) => {
         room["currentTurn"] += 1;
         room["activePlayer"] = (room["activePlayer"]+1)%5; //again
         runTurn(players[socket.id]["actualRoom"]);
-    })
+    });
+
+    socket.on("Player_Vote", (vote) => {
+        const room = players[socket.id]["actualRoom"];
+        const slotVotedFor = rooms[room]["roomSlots"][vote]
+        if(!slotVotedFor) return;
+
+        const senderSlot = players[socket.id]["roomSlot"];
+        if(rooms[room]["roomSlots"][senderSlot]["hasVoted"]) return; //prevent voting multiple times
+        else rooms[room]["roomSlots"][senderSlot]["hasVoted"] = true;
+
+        io.to(room).emit("Message_Recieve", players[socket.id]["username"], "Voted for " + players[slotVotedFor["id"]]["username"] + ".");
+        countVote(room, vote);
+    });
 });
 
 server.listen(port, () => {
