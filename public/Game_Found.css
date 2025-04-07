@@ -76,11 +76,11 @@ html, body {
     height: auto;
     display: block;
     position: absolute;
-    top: 70%;
+    top: 75%;
 }
 
 .playingCard:hover {
-    top: 65%;
+    top: 70%;
 }
 
 .playedCard {
@@ -96,18 +96,18 @@ html, body {
 }
 
 #cardInHand_1 {
-    left: 36%;
+    left: 36.667%;
     transform: translate(-50%, 0);
 }
 
 #cardInHand_2 {
-    left: 52%;
+    left: 53.333%;
     transform: translate(-50%, 0);
 }
 
 #cardDeck {
-    top: 70%;
-    left: 68%;
+    top: 75%;
+    left: 70%;
     transform: translate(-50%, 0);
 }
 
@@ -135,21 +135,21 @@ html, body {
 
 #playedCard_1 {
     top: 50%;
-    left: 36%;
+    left: 36.667%;
     transform: translate(-50%, -50%);
     display: none;
 }
 
 #playedCard_2 {
     top: 50%;
-    left: 52%;
+    left: 53.333%;
     transform: translate(-50%, -50%);
     display: none;
 }
 
 #playedCard_3 {
     top: 50%;
-    left: 68%;
+    left: 70%;
     transform: translate(-50%, -50%);
     display: none;
 }
@@ -186,4 +186,13 @@ html, body {
     top: 20%;
     left: 50%;
     transform: translate(-50%, 0);
+}
+
+#votingButtons {
+    position: absolute;
+    display: flex;
+    width: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
