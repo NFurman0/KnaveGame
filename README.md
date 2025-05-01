@@ -1,4 +1,5 @@
 # KnaveGame
+Now with requestable bots so you can actually play it!
 Small multiplayer web game based on a social deduction game that can be played with cards
 Available currently at https://knavegame.onrender.com
 
