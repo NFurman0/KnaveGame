@@ -4,7 +4,7 @@ const UserRoom = localStorage["UserRoom"];
 const chatMessageText = document.getElementById("chatMessageText");
 const chatMessages = document.getElementById("chatMessages");
 const startGameButton = document.getElementById("startGameButton");
-startGameButton.innerHTML = "Ready"; //reset just in case they disconnected but didn't reload the html somehow
+startGameButton.innerHTML = "Add bots"; //reset just in case they disconnected but didn't reload the html
 const readyPlayersDisplay = document.getElementById("readyPlayersDisplay");
 const KNIGHT_DESC = document.getElementById("knightDesc");
 const KNAVE_DESC = document.getElementById("knaveDesc");
@@ -59,6 +59,7 @@ socket.on("UpdatePlayers", (newPlayers) => {
         if(!oldNames.includes(name)) createChatMessage("server", name + " joined the game.", true);
         playerNames.push(name);
     }
+    startGameButton.innerHTML = "Ready";
 });
 
 socket.on("Message_Recieve", (user, text) => {
@@ -86,7 +87,7 @@ socket.on("RoundStart", (attackers) => {
     new PlayingCard(attackers[0], attackCard0);
     new PlayingCard(attackers[1], attackCard1);
     
-    const attackPower = 3*attackers[0].value + attackers[1].value;
+    const attackPower = 3*attackers[0].value + 2*attackers[1].value;
     attackPowerDisplay.innerHTML = "Attack Power: " + attackPower + "<br>Needed Suit: " + attackers[1].suit;
 
     for(const card of playedCards) {
@@ -187,9 +188,13 @@ function sendMessage() {
 }
 
 function readyStateChange() {
-    socket.emit("PlayerReadyStateChange", startGameButton.innerHTML);
-    if(startGameButton.innerHTML === "Ready") startGameButton.innerHTML = "Cancel";
-    else startGameButton.innerHTML = "Ready";
+    if(playerNames.length > 0) { //only run if the game has already been found
+        socket.emit("PlayerReadyStateChange", startGameButton.innerHTML);
+        if(startGameButton.innerHTML === "Ready") startGameButton.innerHTML = "Cancel";
+        else startGameButton.innerHTML = "Ready";
+    } else { //otherwise request bots
+        socket.emit("RequestBots");
+    }
 }
 
 function chooseCardFromHand(card) {
